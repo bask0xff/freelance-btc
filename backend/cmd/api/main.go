@@ -58,6 +58,7 @@ func main() {
 	jwtManager := auth.NewManager(cfg.JWTSecret, time.Duration(cfg.JWTTTLMin)*time.Minute)
 
 	r := gin.Default()
+	r.Use(corsMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -281,5 +282,21 @@ func main() {
 	log.Println("listening on :" + cfg.HTTPPort)
 	if err := r.Run(":" + cfg.HTTPPort); err != nil {
 		log.Fatal(err)
+	}
+}
+
+// corsMiddleware разрешает кросс-доменные запросы с фронтенда (localhost:5180) к бэкенду (localhost:8099) —
+// для браузера это разные origin, без этих заголовков fetch() из Vue-приложения будет падать на preflight-запросе.
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
 	}
 }

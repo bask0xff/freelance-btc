@@ -1,9 +1,16 @@
-FROM golang:1.22-alpine AS build
+FROM golang:1.25-alpine AS build
 WORKDIR /app
-COPY go.mod ./
-RUN go mod download 2>/dev/null || true
+
+ENV GOTOOLCHAIN=auto
+
+# Копируем весь исходный код и go.mod целиком
 COPY . .
-RUN go mod tidy && go build -o /app/server ./cmd/api
+
+# Автоматически создаем go.sum и скачиваем зависимости внутри контейнера с Go 1.25
+RUN go mod tidy
+
+# Собираем приложение
+RUN go build -o /app/server ./cmd/api
 
 FROM alpine:3.19
 RUN apk add --no-cache ca-certificates
