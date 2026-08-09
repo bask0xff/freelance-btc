@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -43,19 +44,16 @@ func (s *Service) Register(email, password, displayName, role string) (*User, er
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
-	res, err := s.db.Exec(
-		`INSERT INTO users (email, password_hash, role, display_name) VALUES (?, ?, ?, ?)`,
+	var id int64
+	err = s.db.QueryRow(
+		`INSERT INTO users (email, password_hash, role, display_name) VALUES ($1, $2, $3, $4) RETURNING id`,
 		email, string(hash), role, displayName,
-	)
+	).Scan(&id)
 	if err != nil {
-		if isDuplicateErr(err) {
+		if isUniqueViolation(err) {
 			return nil, errors.New("email already registered")
 		}
 		return nil, fmt.Errorf("insert user: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, err
 	}
 
 	return &User{ID: id, Email: email, Role: role, DisplayName: displayName}, nil
@@ -68,7 +66,7 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 		hash string
 	)
 	err := s.db.QueryRow(
-		`SELECT id, email, password_hash, role, display_name, COALESCE(payout_address, '') FROM users WHERE email = ?`,
+		`SELECT id, email, password_hash, role, display_name, COALESCE(payout_address, '') FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Email, &hash, &u.Role, &u.DisplayName, &u.PayoutAddress)
 	if err == sql.ErrNoRows {
@@ -88,7 +86,7 @@ func (s *Service) Authenticate(email, password string) (*User, error) {
 func (s *Service) GetByID(id int64) (*User, error) {
 	var u User
 	err := s.db.QueryRow(
-		`SELECT id, email, role, display_name, COALESCE(payout_address, '') FROM users WHERE id = ?`,
+		`SELECT id, email, role, display_name, COALESCE(payout_address, '') FROM users WHERE id = $1`,
 		id,
 	).Scan(&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.PayoutAddress)
 	if err == sql.ErrNoRows {
@@ -102,22 +100,16 @@ func (s *Service) GetByID(id int64) (*User, error) {
 
 // SetPayoutAddress — фрилансер указывает свой BTC-адрес для получения выплат из эскроу.
 func (s *Service) SetPayoutAddress(userID int64, address string) error {
-	_, err := s.db.Exec(`UPDATE users SET payout_address = ? WHERE id = ?`, address, userID)
+	_, err := s.db.Exec(`UPDATE users SET payout_address = $1 WHERE id = $2`, address, userID)
 	return err
 }
 
-func isDuplicateErr(err error) bool {
-	// go-sql-driver/mysql возвращает *mysql.MySQLError с Number 1062 для дублей уникального ключа.
-	return err != nil && (contains(err.Error(), "Duplicate entry") || contains(err.Error(), "1062"))
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (func() bool {
-		for i := 0; i+len(substr) <= len(s); i++ {
-			if s[i:i+len(substr)] == substr {
-				return true
-			}
-		}
-		return false
-	})()
+// isUniqueViolation — код 23505 в PostgreSQL означает нарушение UNIQUE/PRIMARY KEY.
+// См. https://www.postgresql.org/docs/current/errcodes-appendix.html
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
+	}
+	return false
 }

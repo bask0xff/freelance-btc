@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS disputes;
+DROP TABLE IF EXISTS btc_transactions;
+DROP TABLE IF EXISTS btc_addresses;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS users;
+DROP FUNCTION IF EXISTS set_updated_at();

@@ -1,17 +1,17 @@
 services:
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_DATABASE: ${DB_NAME:-freelance_btc}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-freelance_btc}
     ports:
-      - "3310:3306"   # host:3310 -> container:3306 (3306/5432/5433/5435 у вас уже заняты)
+      - "5436:5432"   # host:5436 -> container:5432 (5432/5433/5435 у вас уже заняты другими проектами)
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./backend/internal/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DB_HOST: mysql
+      DB_HOST: postgres
       # ВАЖНО: bitcoind у вас уже запущен ВНЕ докера (на хосте).
       # host.docker.internal позволяет контейнеру достучаться до RPC на хосте.
       BTC_RPC_HOST: ${BTC_RPC_HOST:-host.docker.internal}
@@ -30,12 +30,15 @@ services:
     ports:
       - "8099:8080"   # host:8099 -> container:8080 (8080/8081/8082/8085/8088 у вас уже заняты)
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
 
   frontend:
     build: ./frontend
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       VITE_API_URL: http://localhost:8099
     ports:
@@ -44,4 +47,4 @@ services:
       - backend
 
 volumes:
-  mysql_data:
+  postgres_data:

@@ -14,12 +14,13 @@ type Config struct {
 	WalletPassphrase string
 	MinConfirmations int64
 
-	// MySQL
-	DBHost string
-	DBPort int
-	DBUser string
-	DBPass string
-	DBName string
+	// PostgreSQL
+	DBHost    string
+	DBPort    int
+	DBUser    string
+	DBPass    string
+	DBName    string
+	DBSSLMode string
 
 	HTTPPort string
 
@@ -36,11 +37,12 @@ func Load() Config {
 		WalletPassphrase: getEnv("BTC_WALLET_PASSPHRASE", ""),
 		MinConfirmations: int64(getEnvInt("BTC_MIN_CONFIRMATIONS", 2)),
 
-		DBHost: getEnv("DB_HOST", "mysql"),
-		DBPort: getEnvInt("DB_PORT", 3306),
-		DBUser: getEnv("DB_USER", "root"),
-		DBPass: getEnv("DB_PASSWORD", "password"),
-		DBName: getEnv("DB_NAME", "freelance_btc"),
+		DBHost:    getEnv("DB_HOST", "postgres"),
+		DBPort:    getEnvInt("DB_PORT", 5432),
+		DBUser:    getEnv("DB_USER", "postgres"),
+		DBPass:    getEnv("DB_PASSWORD", "password"),
+		DBName:    getEnv("DB_NAME", "freelance_btc"),
+		DBSSLMode: getEnv("DB_SSLMODE", "disable"), // локально без TLS; на проде поставьте "require"
 
 		HTTPPort: getEnv("HTTP_PORT", "8080"),
 
