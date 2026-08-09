@@ -4,7 +4,7 @@
 средства до релиза лежат в общем хот-кошельке вашей bitcoind-ноды (кастодиальная модель),
 привязка "какая сумма чья" ведётся в **PostgreSQL**.
 
-## Архитектура
+## Architecture
 
 ```
 Клиент → создаёт заказ (status: open) → фрилансеры видят его в GET /api/orders/open
@@ -28,7 +28,7 @@
     sendtoaddress(payout_address_фрилансера) → walletlock → заказ completed
 ```
 
-## Компоненты
+## Components
 
 - `backend/` — Go (Gin) API + фоновый сканер транзакций + обёртка над bitcoind JSON-RPC
   (`internal/bitcoin/client.go` — прямой аналог вашего `AuthServiceProxy`, тем же набором вызовов:
@@ -39,7 +39,7 @@
 - `docker-compose.yml` — postgres + backend + frontend. **bitcoind не контейнеризован** — он у вас уже
   работает на хосте, backend достучится до него через `host.docker.internal`.
 
-## Запуск
+## Build & Launch
 
 ```bash
 cp .env.example .env
