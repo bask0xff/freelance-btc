@@ -68,7 +68,7 @@ docker compose up --build
 > и `rpcbind=0.0.0.0:8332` (или конкретный интерфейс), либо явно пропишите bridge IP. Порт 8332 у вас
 > сейчас не занят другими контейнерами (bitcoind, судя по всему, работает нативно на хосте, не в докере).
 
-## Миграции
+## Migrations
 
 Файлы лежат в `backend/internal/db/migrations/`, формат имён — конвенция `golang-migrate`:
 `<версия>_<название>.up.sql` / `.down.sql`. При старте backend вызывает `db.RunMigrations()`
