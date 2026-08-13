@@ -84,7 +84,7 @@ export DATABASE_URL="postgres://postgres:<пароль>@localhost:5436/freelance
 make migrate-down   # откатит одну последнюю миграцию
 ```
 
-## Тесты
+## Tests
 
 Юнит-тесты бэкенда используют `sqlmock` (мок `*sql.DB`, реальная БД не нужна) и httptest-заглушку
 bitcoind там, где сервис реально стучится по RPC (найм фрилансера генерирует адрес).
